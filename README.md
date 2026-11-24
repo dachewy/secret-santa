@@ -1,4 +1,4 @@
-# 🎅 Bad Santa
+# 🎅 Secret Santa
 
 A simple Secret Santa page for the family Christmas.
 

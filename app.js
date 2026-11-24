@@ -1,4 +1,4 @@
-// Bad Santa: Secret Santa with private links. No server needed.
+// Secret Santa with private links. No server needed.
 
 const $ = (id) => document.getElementById(id);
 let names = [];
