@@ -1,0 +1,114 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: linear-gradient(160deg, #0f3d2e 0%, #1b5e3f 50%, #7a1020 100%);
+  color: #2b1d1d;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 40px 16px;
+  overflow-x: hidden;
+}
+
+.card {
+  position: relative;
+  z-index: 1;
+  background: #fffaf3;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 18px;
+  padding: 28px 24px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  border-top: 8px solid #c8102e;
+  text-align: center;
+}
+
+h1 { margin: 0 0 8px; color: #c8102e; font-size: 2.2rem; }
+h2 { font-size: 1.15rem; margin: 24px 0 4px; color: #0f5132; }
+.sub { color: #6b5a5a; margin: 4px 0 16px; }
+
+.row { display: flex; gap: 8px; }
+
+input {
+  flex: 1;
+  min-width: 0;
+  padding: 12px;
+  font-size: 1rem;
+  border: 2px solid #e2d6c8;
+  border-radius: 10px;
+}
+input:focus { outline: none; border-color: #c8102e; }
+
+button {
+  cursor: pointer;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 18px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: #c8102e;
+  color: #fff;
+}
+button:hover:not(:disabled) { filter: brightness(1.1); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.big { width: 100%; margin-top: 16px; padding: 16px; font-size: 1.2rem; }
+button.secondary { background: #0f5132; margin-top: 16px; }
+button.small { padding: 6px 12px; font-size: 0.85rem; }
+
+.error { color: #c8102e; font-size: 0.9rem; margin: 8px 0 0; }
+
+ul { list-style: none; padding: 0; margin: 16px 0 0; text-align: left; }
+
+.names li, .links li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  background: #fff;
+  border: 1px solid #eee2d4;
+  border-radius: 10px;
+}
+.names .remove {
+  background: none;
+  color: #a08c8c;
+  padding: 2px 8px;
+  font-size: 1.2rem;
+}
+.names .remove:hover { color: #c8102e; }
+
+.links .who { font-weight: 600; }
+.links .copy.done { background: #0f5132; }
+
+.greeting { font-size: 1.6rem; font-weight: 700; margin: 12px 0 0; }
+
+.match { margin-top: 20px; animation: pop 0.6s ease-out; }
+.receiver {
+  font-size: 2.4rem;
+  font-weight: 800;
+  color: #c8102e;
+  margin: 8px 0;
+  word-break: break-word;
+}
+@keyframes pop {
+  0% { transform: scale(0.3); opacity: 0; }
+  70% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1); }
+}
+
+/* Snow */
+#snow { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+.flake {
+  position: absolute;
+  top: -10px;
+  color: #fff;
+  opacity: 0.8;
+  animation: fall linear infinite;
+}
+@keyframes fall {
+  to { transform: translateY(110vh); }
+}

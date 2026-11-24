@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bad Santa 🎅</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="snow" aria-hidden="true"></div>
+
+  <main class="card">
+    <h1>🎅 Bad Santa</h1>
+
+    <!-- Organiser view -->
+    <section id="organiser" hidden>
+      <p class="sub">Add everyone taking part, then hit <strong>Draw!</strong></p>
+
+      <form id="add-form" class="row">
+        <input id="name-input" type="text" placeholder="Cousin's name" autocomplete="off" maxlength="40">
+        <button type="submit">Add</button>
+      </form>
+      <p id="error" class="error" hidden></p>
+
+      <ul id="name-list" class="names"></ul>
+
+      <button id="draw-btn" class="big" disabled>🎁 Draw!</button>
+
+      <div id="results" hidden>
+        <h2>Send each cousin their private link</h2>
+        <p class="sub">Each link shows only that person's match. Don't open them yourself, or you'll spoil the surprise!</p>
+        <ul id="link-list" class="links"></ul>
+        <button id="redraw-btn" class="secondary">↺ Redraw</button>
+      </div>
+    </section>
+
+    <!-- Reveal view -->
+    <section id="reveal" hidden>
+      <p class="greeting">Hi <span id="giver-name"></span>!</p>
+      <p class="sub">Ready to find out who you're buying for?</p>
+      <button id="unwrap-btn" class="big">🎁 Tap to unwrap</button>
+      <div id="match" class="match" hidden>
+        <p>You are Secret Santa for…</p>
+        <p id="receiver-name" class="receiver"></p>
+        <p class="sub">🤫 Keep it a secret!</p>
+      </div>
+    </section>
+
+    <!-- Bad link -->
+    <section id="bad-link" hidden>
+      <p class="greeting">Uh oh! 🎄</p>
+      <p class="sub">This link looks broken. Ask the organiser to send it again.</p>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
