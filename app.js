@@ -165,20 +165,187 @@ function confettiBurst() {
 // ---------- Snow ----------
 function letItSnow() {
   const snow = $("snow");
-  for (let i = 0; i < 40; i++) {
+  const calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const shapes = ["❄", "❅", "❆", "•"];
+  for (let i = 0; i < (calm ? 20 : 80); i++) {
     const f = document.createElement("span");
     f.className = "flake";
-    f.textContent = "❄";
+    f.textContent = shapes[i % shapes.length];
     f.style.left = Math.random() * 100 + "vw";
-    f.style.fontSize = 8 + Math.random() * 14 + "px";
-    f.style.animationDuration = 6 + Math.random() * 10 + "s";
-    f.style.animationDelay = -Math.random() * 16 + "s";
+    f.style.fontSize = 8 + Math.random() * 16 + "px";
+    f.style.opacity = 0.4 + Math.random() * 0.6;
+    f.style.setProperty("--sway", 15 + Math.random() * 40 + "px");
+    f.style.animationDuration = (calm ? 30 : 8) + Math.random() * 12 + "s";
+    f.style.animationDelay = -Math.random() * 20 + "s";
     snow.append(f);
+  }
+}
+
+// ---------- Music: Jingle Bells (public domain), played with the Web Audio API ----------
+const Music = (() => {
+  const BEAT = 0.36; // seconds per beat
+  const HZ = {
+    C3: 130.81, D3: 146.83, F3: 174.61, G3: 196.0,
+    C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99,
+  };
+
+  // Chorus melody as [note, beats]
+  const jingleAllTheWay = [["E5",1],["E5",1],["E5",2],["E5",1],["E5",1],["E5",2],
+    ["E5",1],["G5",1],["C5",1.5],["D5",0.5],["E5",4]];
+  const ohWhatFun = [["F5",1],["F5",1],["F5",1.5],["F5",0.5],["F5",1],["E5",1],["E5",1],["E5",0.5],["E5",0.5]];
+  const melody = [
+    ...jingleAllTheWay,
+    ...ohWhatFun, ["E5",1],["D5",1],["D5",1],["E5",1],["D5",2],["G5",2],
+    ...jingleAllTheWay,
+    ...ohWhatFun, ["G5",1],["G5",1],["F5",1],["D5",1],["C5",4],
+  ];
+  const bassPerBar = ["C3","C3","C3","C3","F3","C3","D3","G3","C3","C3","C3","C3","F3","C3","G3","C3"];
+  const LOOP_BEATS = 64;
+
+  // One loop of events, sorted by time
+  const events = [];
+  let beat = 0;
+  for (const [note, len] of melody) {
+    events.push({ beat, kind: "bell", hz: HZ[note], len: len * BEAT });
+    beat += len;
+  }
+  bassPerBar.forEach((note, bar) => {
+    events.push({ beat: bar * 4, kind: "bass", hz: HZ[note] });
+    events.push({ beat: bar * 4 + 2, kind: "bass", hz: HZ[note] });
+  });
+  for (let b = 0; b < LOOP_BEATS; b++) events.push({ beat: b, kind: "jingle", accent: b % 2 === 0 });
+  events.sort((a, b) => a.beat - b.beat);
+
+  let ctx, master, noise, timer, idx, loopStart;
+  let playing = false;
+
+  function setup() {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    master = ctx.createGain();
+    master.connect(ctx.destination);
+    // A short burst of white noise, reused for the sleigh bells
+    noise = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
+    const data = noise.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  }
+
+  function envelope(t, peak, decay) {
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
+    g.connect(master);
+    return g;
+  }
+
+  function tone(type, hz, t, peak, decay) {
+    const o = ctx.createOscillator();
+    o.type = type;
+    o.frequency.value = hz;
+    o.connect(envelope(t, peak, decay));
+    o.start(t);
+    o.stop(t + decay + 0.05);
+  }
+
+  function play(ev, t) {
+    if (ev.kind === "bell") {
+      const decay = Math.max(ev.len, 0.4) + 0.3;
+      tone("triangle", ev.hz, t, 0.5, decay);     // body of the bell
+      tone("sine", ev.hz * 4, t, 0.08, decay / 3); // shimmer
+    } else if (ev.kind === "bass") {
+      tone("triangle", ev.hz, t, 0.35, 0.5);
+    } else {
+      // Sleigh bells: two quick high-pitched shakes
+      for (const offset of [0, 0.05]) {
+        const src = ctx.createBufferSource();
+        src.buffer = noise;
+        const hp = ctx.createBiquadFilter();
+        hp.type = "highpass";
+        hp.frequency.value = 7000;
+        src.connect(hp);
+        hp.connect(envelope(t + offset, ev.accent ? 0.18 : 0.1, 0.12));
+        src.start(t + offset);
+        src.stop(t + offset + 0.2);
+      }
+    }
+  }
+
+  // Schedule notes a little ahead of time so playback stays smooth
+  function tick() {
+    for (;;) {
+      const ev = events[idx];
+      const t = loopStart + ev.beat * BEAT;
+      if (t > ctx.currentTime + 0.3) break;
+      play(ev, t);
+      if (++idx === events.length) {
+        idx = 0;
+        loopStart += LOOP_BEATS * BEAT;
+      }
+    }
+  }
+
+  return {
+    get playing() { return playing; },
+    start() {
+      if (playing) return;
+      if (!ctx) setup();
+      ctx.resume();
+      master.gain.cancelScheduledValues(ctx.currentTime);
+      master.gain.setValueAtTime(0.18, ctx.currentTime);
+      idx = 0;
+      loopStart = ctx.currentTime + 0.1;
+      timer = setInterval(tick, 100);
+      playing = true;
+    },
+    stop() {
+      if (!playing) return;
+      clearInterval(timer);
+      master.gain.setTargetAtTime(0, ctx.currentTime, 0.05); // quick fade out
+      playing = false;
+    },
+  };
+})();
+
+function initMusic() {
+  const btn = $("music-btn");
+  const savePref = (on) => { try { localStorage.setItem("ss-music", on ? "on" : "off"); } catch {} };
+  let mutedBefore = false;
+  try { mutedBefore = localStorage.getItem("ss-music") === "off"; } catch {}
+
+  const refresh = () => {
+    btn.textContent = Music.playing ? "🔇 Stop music" : "🎵 Play music";
+    btn.setAttribute("aria-pressed", String(Music.playing));
+  };
+
+  // Browsers only allow sound after the visitor taps or types,
+  // so start the music on their first interaction (unless they muted it before).
+  const stopAutoStart = () => {
+    document.removeEventListener("pointerdown", autoStart);
+    document.removeEventListener("keydown", autoStart);
+  };
+  const autoStart = (e) => {
+    if (e.target === btn) return; // the button handles itself
+    stopAutoStart();
+    Music.start();
+    refresh();
+  };
+
+  btn.onclick = () => {
+    stopAutoStart(); // the visitor has chosen; don't override it
+    Music.playing ? Music.stop() : Music.start();
+    savePref(Music.playing);
+    refresh();
+  };
+
+  if (!mutedBefore) {
+    document.addEventListener("pointerdown", autoStart);
+    document.addEventListener("keydown", autoStart);
   }
 }
 
 // ---------- Start ----------
 letItSnow();
+initMusic();
 const match = location.hash.match(/^#g=(.+)$/);
 if (match) initReveal(match[1]);
 else initOrganiser();

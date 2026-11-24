@@ -260,11 +260,31 @@ ul { list-style: none; padding: 0; margin: 16px 0 0; text-align: left; }
 #snow { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
 .flake {
   position: absolute;
-  top: -10px;
+  top: -30px;
   color: #fff;
-  opacity: 0.8;
+  text-shadow: 0 0 6px rgba(255, 255, 255, 0.6);
   animation: fall linear infinite;
 }
+/* Falls down while drifting side to side */
 @keyframes fall {
-  to { transform: translateY(110vh); }
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  25%  { transform: translate(var(--sway), 28vh) rotate(90deg); }
+  50%  { transform: translate(0, 56vh) rotate(180deg); }
+  75%  { transform: translate(calc(var(--sway) * -1), 84vh) rotate(270deg); }
+  100% { transform: translate(0, 112vh) rotate(360deg); }
+}
+
+/* Music on/off button */
+.music-btn,
+.music-btn:hover:not(:disabled) {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  z-index: 5;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgba(255, 250, 243, 0.95);
+  color: #0f5132;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
 }
