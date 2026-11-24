@@ -216,58 +216,66 @@ const Music = (() => {
   for (let b = 0; b < LOOP_BEATS; b++) events.push({ beat: b, kind: "jingle", accent: b % 2 === 0 });
   events.sort((a, b) => a.beat - b.beat);
 
-  let ctx, master, noise, timer, idx, loopStart;
+  const VOLUME = 0.1;
+  let ctx, master, mellow, timer, idx, loopStart;
   let playing = false;
 
   function setup() {
     ctx = new (window.AudioContext || window.webkitAudioContext)();
     master = ctx.createGain();
+    master.gain.value = 0;
     master.connect(ctx.destination);
-    // A short burst of white noise, reused for the sleigh bells
-    noise = ctx.createBuffer(1, ctx.sampleRate * 0.2, ctx.sampleRate);
-    const data = noise.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    // Soft filter that rounds off the melody and bass so they don't sound like beeps
+    mellow = ctx.createBiquadFilter();
+    mellow.type = "lowpass";
+    mellow.frequency.value = 2200;
+    mellow.connect(master);
+    ctx.onstatechange = () => api.onchange && api.onchange();
   }
 
-  function envelope(t, peak, decay) {
+  function envelope(t, peak, attack, decay, out) {
     const g = ctx.createGain();
     g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(peak, t + attack);
     g.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-    g.connect(master);
+    g.connect(out);
     return g;
   }
 
-  function tone(type, hz, t, peak, decay) {
+  function tone(hz, t, peak, attack, decay, out, type = "sine") {
     const o = ctx.createOscillator();
     o.type = type;
     o.frequency.value = hz;
-    o.connect(envelope(t, peak, decay));
+    o.connect(envelope(t, peak, attack, decay, out));
     o.start(t);
     o.stop(t + decay + 0.05);
   }
 
-  function play(ev, t) {
-    if (ev.kind === "bell") {
-      const decay = Math.max(ev.len, 0.4) + 0.3;
-      tone("triangle", ev.hz, t, 0.5, decay);     // body of the bell
-      tone("sine", ev.hz * 4, t, 0.08, decay / 3); // shimmer
-    } else if (ev.kind === "bass") {
-      tone("triangle", ev.hz, t, 0.35, 0.5);
-    } else {
-      // Sleigh bells: two quick high-pitched shakes
-      for (const offset of [0, 0.05]) {
-        const src = ctx.createBufferSource();
-        src.buffer = noise;
-        const hp = ctx.createBiquadFilter();
-        hp.type = "highpass";
-        hp.frequency.value = 7000;
-        src.connect(hp);
-        hp.connect(envelope(t + offset, ev.accent ? 0.18 : 0.1, 0.12));
-        src.start(t + offset);
-        src.stop(t + offset + 0.2);
+  // A soft music-box / celesta note: pure tone plus gentle overtones
+  function musicBox(hz, t, len) {
+    const decay = Math.max(len, 0.5) + 0.6;
+    tone(hz, t, 0.45, 0.02, decay, mellow);
+    tone(hz * 2, t, 0.12, 0.02, decay * 0.5, mellow);
+    tone(hz * 3.01, t, 0.04, 0.02, decay * 0.3, mellow);
+  }
+
+  // One shake of sleigh bells: a cluster of tiny metal bells ringing a few ms apart
+  function sleighBells(t, loud) {
+    const bells = loud ? 5 : 3;
+    for (let b = 0; b < bells; b++) {
+      const start = t + Math.random() * 0.04;
+      const base = 2800 + Math.random() * 2200;
+      // Metal bells have uneven ("inharmonic") overtones, which gives the jingle
+      for (const ratio of [1, 1.47, 2.09]) {
+        tone(base * ratio, start, (loud ? 0.05 : 0.03) / ratio, 0.003, 0.18 + Math.random() * 0.12, master);
       }
     }
+  }
+
+  function play(ev, t) {
+    if (ev.kind === "bell") musicBox(ev.hz, t, ev.len);
+    else if (ev.kind === "bass") tone(ev.hz, t, 0.3, 0.03, 0.7, mellow, "triangle");
+    else sleighBells(t, ev.accent);
   }
 
   // Schedule notes a little ahead of time so playback stays smooth
@@ -284,14 +292,16 @@ const Music = (() => {
     }
   }
 
-  return {
-    get playing() { return playing; },
+  const api = {
+    onchange: null,
+    // True only when sound is actually coming out (not blocked by the browser)
+    get audible() { return playing && ctx.state === "running"; },
     start() {
-      if (playing) return;
       if (!ctx) setup();
-      ctx.resume();
+      ctx.resume().catch(() => {}); // the browser may refuse until the visitor taps
+      if (playing) return;
       master.gain.cancelScheduledValues(ctx.currentTime);
-      master.gain.setValueAtTime(0.18, ctx.currentTime);
+      master.gain.setValueAtTime(VOLUME, ctx.currentTime);
       idx = 0;
       loopStart = ctx.currentTime + 0.1;
       timer = setInterval(tick, 100);
@@ -304,6 +314,7 @@ const Music = (() => {
       playing = false;
     },
   };
+  return api;
 })();
 
 function initMusic() {
@@ -313,12 +324,13 @@ function initMusic() {
   try { mutedBefore = localStorage.getItem("ss-music") === "off"; } catch {}
 
   const refresh = () => {
-    btn.textContent = Music.playing ? "🔇 Stop music" : "🎵 Play music";
-    btn.setAttribute("aria-pressed", String(Music.playing));
+    btn.textContent = Music.audible ? "🔇 Stop music" : "🎵 Play music";
+    btn.setAttribute("aria-pressed", String(Music.audible));
   };
+  Music.onchange = refresh;
 
-  // Browsers only allow sound after the visitor taps or types,
-  // so start the music on their first interaction (unless they muted it before).
+  // Most browsers block sound until the visitor taps or types. So: try to play
+  // straight away, and if that's blocked, start on their first interaction.
   const stopAutoStart = () => {
     document.removeEventListener("pointerdown", autoStart);
     document.removeEventListener("keydown", autoStart);
@@ -332,12 +344,15 @@ function initMusic() {
 
   btn.onclick = () => {
     stopAutoStart(); // the visitor has chosen; don't override it
-    Music.playing ? Music.stop() : Music.start();
-    savePref(Music.playing);
+    const turnOn = !Music.audible;
+    turnOn ? Music.start() : Music.stop();
+    savePref(turnOn);
     refresh();
   };
 
   if (!mutedBefore) {
+    Music.start(); // autoplay attempt
+    refresh();
     document.addEventListener("pointerdown", autoStart);
     document.addEventListener("keydown", autoStart);
   }
