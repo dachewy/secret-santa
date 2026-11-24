@@ -126,11 +126,40 @@ function initReveal(code) {
   }
   $("reveal").hidden = false;
   $("giver-name").textContent = pair.g;
-  $("unwrap-btn").onclick = () => {
-    $("receiver-name").textContent = pair.r;
-    $("unwrap-btn").hidden = true;
-    $("match").hidden = false;
+  const stage = $("stage");
+  const gift = $("gift");
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  const finish = () => {
+    gift.hidden = true;
+    stage.classList.add("revealed");
+    if (!reduceMotion) confettiBurst();
   };
+
+  gift.onclick = () => {
+    $("receiver-name").textContent = pair.r;
+    $("reveal-hint").hidden = true;
+    if (reduceMotion) return finish();
+    stage.classList.add("unwrapping");
+    setTimeout(finish, 1600); // matches the CSS unwrapping sequence
+  };
+}
+
+function confettiBurst() {
+  const box = $("confetti");
+  const colours = ["#c8102e", "#0f5132", "#f4c430", "#ffffff", "#2e8b57", "#ff6b6b"];
+  for (let i = 0; i < 60; i++) {
+    const p = document.createElement("span");
+    const angle = Math.random() * Math.PI * 2;
+    const dist = 90 + Math.random() * 130;
+    p.style.setProperty("--c", colours[i % colours.length]);
+    p.style.setProperty("--dx", Math.cos(angle) * dist + "px");
+    p.style.setProperty("--dy", Math.sin(angle) * dist - 40 + "px");
+    p.style.setProperty("--rot", Math.random() * 720 - 360 + "deg");
+    p.style.animationDelay = Math.random() * 0.15 + "s";
+    box.append(p);
+  }
+  setTimeout(() => (box.innerHTML = ""), 1800);
 }
 
 // ---------- Snow ----------

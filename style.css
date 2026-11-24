@@ -86,18 +86,174 @@ ul { list-style: none; padding: 0; margin: 16px 0 0; text-align: left; }
 
 .greeting { font-size: 1.6rem; font-weight: 700; margin: 12px 0 0; }
 
-.match { margin-top: 20px; animation: pop 0.6s ease-out; }
+/* ---------- The present ---------- */
+.stage {
+  position: relative;
+  width: min(280px, 78vw);
+  aspect-ratio: 1;
+  margin: 28px auto 12px;
+}
+
+/* The card with the name, sitting under the paper */
+.card-inside {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 16px;
+  background: #fff;
+  border: 3px dashed #d4a017;
+  border-radius: 14px;
+  opacity: 0;
+  transform: scale(0.8);
+}
+.card-inside p { margin: 4px 0; }
+.stage.revealed .card-inside {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.4s ease-out, transform 0.6s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
 .receiver {
-  font-size: 2.4rem;
+  font-size: clamp(1.6rem, 9vw, 2.4rem);
   font-weight: 800;
   color: #c8102e;
-  margin: 8px 0;
   word-break: break-word;
 }
-@keyframes pop {
-  0% { transform: scale(0.3); opacity: 0; }
-  70% { transform: scale(1.1); opacity: 1; }
-  100% { transform: scale(1); }
+
+.gift,
+.gift:hover:not(:disabled) {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  background: none;
+  border-radius: 0;
+  filter: drop-shadow(0 12px 14px rgba(0, 0, 0, 0.3));
+}
+.gift { animation: wiggle 2.6s ease-in-out infinite; }
+.gift:focus-visible { outline: 3px solid #d4a017; outline-offset: 6px; }
+.stage.unwrapping .gift { animation: none; pointer-events: none; }
+
+@keyframes wiggle {
+  0%, 78%, 100% { transform: rotate(0); }
+  82% { transform: rotate(-4deg); }
+  86% { transform: rotate(4deg); }
+  90% { transform: rotate(-3deg); }
+  94% { transform: rotate(2deg); }
+}
+
+/* Wrapping paper: two halves that tear apart down a zigzag */
+.paper {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 54%;
+  background-color: #c8102e;
+  background-image:
+    radial-gradient(circle at 25% 25%, #fff 0 3px, transparent 4px),
+    radial-gradient(circle at 75% 75%, #f4d35e 0 3px, transparent 4px),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.08) 0 10px, transparent 10px 20px);
+  background-size: 28px 28px, 28px 28px, auto;
+}
+.paper-l {
+  left: 0;
+  clip-path: polygon(0 0, 100% 0, 86% 8.33%, 100% 16.67%, 86% 25%, 100% 33.33%, 86% 41.67%,
+    100% 50%, 86% 58.33%, 100% 66.67%, 86% 75%, 100% 83.33%, 86% 91.67%, 100% 100%, 0 100%);
+}
+.paper-r {
+  right: 0;
+  clip-path: polygon(14% 0, 100% 0, 100% 100%, 14% 100%, 0 91.67%, 14% 83.33%, 0 75%, 14% 66.67%,
+    0 58.33%, 14% 50%, 0 41.67%, 14% 33.33%, 0 25%, 14% 16.67%, 0 8.33%);
+}
+
+/* Ribbons */
+.ribbon {
+  position: absolute;
+  background: linear-gradient(90deg, #e0a800, #f7d35c 50%, #e0a800);
+}
+.ribbon-v { left: 42%; width: 16%; top: 0; bottom: 0; transform-origin: top; }
+.ribbon-h {
+  top: 42%; height: 16%; left: 0; right: 0;
+  background: linear-gradient(180deg, #e0a800, #f7d35c 50%, #e0a800);
+  transform-origin: right;
+}
+
+/* Bow */
+.bow { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+.loop {
+  position: absolute;
+  top: -24px;
+  width: 66px;
+  height: 44px;
+  border: 12px solid #f4c430;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 2px #d49b00, 0 0 0 2px #d49b00;
+}
+.loop-l { right: 2px; transform: rotate(-18deg); }
+.loop-r { left: 2px; transform: rotate(18deg); }
+.tail {
+  position: absolute;
+  top: 6px;
+  width: 16px;
+  height: 52px;
+  background: #e8b400;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 85%, 0 100%);
+}
+.tail-l { right: 2px; transform: rotate(28deg); transform-origin: top; }
+.tail-r { left: 2px; transform: rotate(-28deg); transform-origin: top; }
+.knot {
+  position: absolute;
+  left: -15px;
+  top: -15px;
+  width: 30px;
+  height: 30px;
+  background: #e0a800;
+  border-radius: 8px;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.15);
+}
+
+/* Unwrapping sequence: bow → ribbons → paper (about 1.6s in total) */
+.stage.unwrapping .loop-l { animation: fly-l 0.6s ease-in forwards; }
+.stage.unwrapping .loop-r { animation: fly-r 0.6s ease-in forwards; }
+.stage.unwrapping .tail-l { animation: fly-l 0.6s 0.08s ease-in forwards; }
+.stage.unwrapping .tail-r { animation: fly-r 0.6s 0.08s ease-in forwards; }
+.stage.unwrapping .knot { animation: shrink 0.35s 0.2s ease-in forwards; }
+.stage.unwrapping .ribbon-v { animation: unravel-v 0.5s 0.45s ease-in forwards; }
+.stage.unwrapping .ribbon-h { animation: unravel-h 0.5s 0.55s ease-in forwards; }
+.stage.unwrapping .paper-l { animation: tear-l 0.75s 0.95s cubic-bezier(0.5, 0, 0.75, 0) forwards; }
+.stage.unwrapping .paper-r { animation: tear-r 0.75s 0.95s cubic-bezier(0.5, 0, 0.75, 0) forwards; }
+
+@keyframes fly-l { to { transform: translate(-80px, -70px) rotate(-140deg) scale(0.5); opacity: 0; } }
+@keyframes fly-r { to { transform: translate(80px, -70px) rotate(140deg) scale(0.5); opacity: 0; } }
+@keyframes shrink { to { transform: scale(0); opacity: 0; } }
+@keyframes unravel-v { to { transform: scaleY(0); } }
+@keyframes unravel-h { to { transform: scaleX(0); } }
+@keyframes tear-l {
+  20% { transform: translateX(-4%) rotate(-3deg); }
+  to { transform: translate(-130%, 40px) rotate(-30deg); opacity: 0; }
+}
+@keyframes tear-r {
+  20% { transform: translateX(4%) rotate(3deg); }
+  to { transform: translate(130%, 40px) rotate(30deg); opacity: 0; }
+}
+
+/* Confetti */
+.confetti { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
+.confetti span {
+  position: absolute;
+  width: 8px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--c);
+  animation: burst 1.4s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+@keyframes burst {
+  to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gift { animation: none; }
 }
 
 /* Snow */

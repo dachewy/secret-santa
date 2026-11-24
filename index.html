@@ -37,12 +37,32 @@
     <!-- Reveal view -->
     <section id="reveal" hidden>
       <p class="greeting">Hi <span id="giver-name"></span>!</p>
-      <p class="sub">Ready to find out who you're buying for?</p>
-      <button id="unwrap-btn" class="big">🎁 Tap to unwrap</button>
-      <div id="match" class="match" hidden>
-        <p>You are Secret Santa for…</p>
-        <p id="receiver-name" class="receiver"></p>
-        <p class="sub">🤫 Keep it a secret!</p>
+      <p class="sub" id="reveal-hint">Tap the present to find out who you're buying for</p>
+
+      <div class="stage" id="stage">
+        <!-- Hidden under the wrapping paper -->
+        <div class="card-inside" aria-live="polite">
+          <p>You are Secret Santa for…</p>
+          <p id="receiver-name" class="receiver"></p>
+          <p class="sub">🤫 Keep it a secret!</p>
+        </div>
+
+        <!-- The present -->
+        <button id="gift" class="gift" aria-label="Unwrap your present">
+          <span class="paper paper-l"></span>
+          <span class="paper paper-r"></span>
+          <span class="ribbon ribbon-v"></span>
+          <span class="ribbon ribbon-h"></span>
+          <span class="bow">
+            <span class="loop loop-l"></span>
+            <span class="loop loop-r"></span>
+            <span class="tail tail-l"></span>
+            <span class="tail tail-r"></span>
+            <span class="knot"></span>
+          </span>
+        </button>
+
+        <div class="confetti" id="confetti" aria-hidden="true"></div>
       </div>
     </section>
 
